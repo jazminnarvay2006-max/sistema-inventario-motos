@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, FolderTree, Users, RefreshCw, UserCheck, 
-  Search, Bike, LayoutGrid, List, Gauge, Lock, Mail, ArrowRight, ShieldCheck, LogOut, Plus, Edit3, Trash2, X, TrendingUp, AlertTriangle, CheckCircle2, DollarSign
+  Search, Bike, LayoutGrid, List, Gauge, Lock, Mail, ArrowRight, ShieldCheck, LogOut, Plus, Edit3, Trash2, X, TrendingUp, AlertTriangle, CheckCircle2, DollarSign, Bell, Send, Activity, PackagePlus, ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
 
 // ILUSTRACIONES SVG SEGURAS E INTERNAS
@@ -36,13 +36,13 @@ function LoginView({ onLoginSuccess }) {
       if (!response.ok) throw new Error(data.mensaje || 'Credenciales incorrectas');
 
       localStorage.setItem('token', data.token);
-      onLoginSuccess(data.usuario);
-      navigate('/');
+      onLoginSuccess(data.usuario || { nombre: 'Jazmín Narvay', rol: 'Administrador' });
+      navigate('/', { replace: true });
     } catch (err) {
       if (email === 'admin@senado.pe' && password === 'Password123') {
         localStorage.setItem('token', 'token_temporal_mock');
         onLoginSuccess({ nombre: 'Jazmín Narvay', email: 'admin@senado.pe', rol: 'Administrador' });
-        navigate('/');
+        navigate('/', { replace: true });
       } else {
         setError(err.message || 'Error de conexión con apiInventario (Puerto 3006)');
       }
@@ -86,7 +86,8 @@ function LoginView({ onLoginSuccess }) {
           </div>
 
           <button type="submit" disabled={cargando} style={{ marginTop: '0.5rem', width: '100%', padding: '0.85rem', background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.95rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            {cargando ? 'Verificando...' : (<>ACCEDER AL PITS <ArrowRight size={18} /></>)}
+            <span>{cargando ? 'Verificando...' : 'ACCEDER AL PITS'}</span>
+            {!cargando && <ArrowRight size={18} />}
           </button>
         </form>
 
@@ -115,6 +116,7 @@ function Sidebar() {
     { path: '/productos', label: 'Productos (Motos)', icon: Bike },
     { path: '/categorias', label: 'Categorías', icon: FolderTree },
     { path: '/proveedores', label: 'Proveedores', icon: Users },
+    { path: '/reposicion', label: 'Reposición y Alertas', icon: AlertTriangle },
     { path: '/kardex', label: 'Kardex / Movimientos', icon: RefreshCw },
     { path: '/usuarios', label: 'Usuarios', icon: UserCheck },
   ];
@@ -144,14 +146,30 @@ function Sidebar() {
 }
 
 // --- HEADER ---
-function Header({ usuario, onLogout }) {
+function Header({ usuario, onLogout, alertasCount }) {
+  const navigate = useNavigate();
+
   return (
     <header style={{ height: '65px', background: 'rgba(15, 23, 42, 0.95)', borderBottom: '1px solid rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', zIndex: 9999 }}>
       <div style={{ position: 'relative', width: '320px' }}>
         <Search size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
         <input type="text" placeholder="Buscar en appInventario..." style={{ width: '100%', background: 'rgba(30, 41, 59, 0.6)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.45rem 0.75rem 0.45rem 2.2rem', borderRadius: '20px', color: '#fff', fontSize: '0.85rem', outline: 'none' }} />
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <button 
+          onClick={() => navigate('/reposicion')}
+          title="Ir a Reposición y Alertas de Stock" 
+          style={{ position: 'relative', background: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(56, 189, 248, 0.2)', padding: '8px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}
+        >
+          <Bell size={20} />
+          {alertasCount > 0 && (
+            <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 'bold', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #0f172a' }}>
+              {alertasCount}
+            </span>
+          )}
+        </button>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1.25rem' }}>
           <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #0284c7, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#fff' }}>J</div>
           <div style={{ fontSize: '0.85rem' }}>
@@ -165,8 +183,8 @@ function Header({ usuario, onLogout }) {
   );
 }
 
-// --- DASHBOARD ESPECTACULAR MEJORADO (PARA SACAR 20) ---
-function DashboardView() {
+// --- PANEL DE CONTROL SÚPER LLAMATIVO Y AVANZADO ---
+function DashboardView({ alertasCount }) {
   return (
     <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -179,94 +197,249 @@ function DashboardView() {
         </div>
       </div>
 
-      {/* TARJETAS DE MÉTRICAS PRINCIPALES */}
+      {/* TARJETAS SUPERIORES DE MÉTRICAS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
         <div style={{ padding: '1.5rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.2)', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div><span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: '600' }}>TOTAL MOTOCICLETAS</span><div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#f8fafc', margin: '0.5rem 0 0 0' }}>142</div></div>
+            <div><span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600' }}>TOTAL MOTOCICLETAS</span><div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#f8fafc', margin: '0.5rem 0 0 0' }}>142</div></div>
             <div style={{ background: 'rgba(2, 132, 199, 0.2)', padding: '10px', borderRadius: '12px', color: '#38bdf8' }}><Bike size={24} /></div>
           </div>
-          <span style={{ color: '#10b981', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.5rem' }}><TrendingUp size={12} /> +12% este mes</span>
+          <span style={{ color: '#10b981', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.5rem' }}><TrendingUp size={12} /> +12% stock este mes</span>
         </div>
 
         <div style={{ padding: '1.5rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.2)', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div><span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: '600' }}>CATEGORÍAS</span><div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#f8fafc', margin: '0.5rem 0 0 0' }}>5</div></div>
+            <div><span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600' }}>CATEGORÍAS</span><div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#f8fafc', margin: '0.5rem 0 0 0' }}>5</div></div>
             <div style={{ background: 'rgba(99, 102, 241, 0.2)', padding: '10px', borderRadius: '12px', color: '#818cf8' }}><FolderTree size={24} /></div>
           </div>
-          <span style={{ color: '#818cf8', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.5rem' }}><CheckCircle2 size={12} /> Sincronizadas</span>
+          <span style={{ color: '#818cf8', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.5rem' }}><CheckCircle2 size={12} /> Sincronizadas (Sequelize)</span>
         </div>
 
         <div style={{ padding: '1.5rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.2)', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div><span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: '600' }}>PROVEEDORES</span><div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#f8fafc', margin: '0.5rem 0 0 0' }}>4</div></div>
+            <div><span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600' }}>PROVEEDORES</span><div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#f8fafc', margin: '0.5rem 0 0 0' }}>4</div></div>
             <div style={{ background: 'rgba(16, 185, 129, 0.2)', padding: '10px', borderRadius: '12px', color: '#10b981' }}><Users size={24} /></div>
           </div>
-          <span style={{ color: '#10b981', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.5rem' }}><CheckCircle2 size={12} /> Alianzas activas</span>
+          <span style={{ color: '#10b981', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.5rem' }}><CheckCircle2 size={12} /> Alianzas oficiales</span>
         </div>
 
         <div style={{ padding: '1.5rem', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: '1px solid rgba(248, 113, 113, 0.4)', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div><span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: '600' }}>ALERTAS DE STOCK</span><div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#f87171', margin: '0.5rem 0 0 0' }}>3</div></div>
+            <div><span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600' }}>ALERTAS DE STOCK</span><div style={{ fontSize: '2.2rem', fontWeight: '800', color: '#f87171', margin: '0.5rem 0 0 0' }}>{alertasCount}</div></div>
             <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '10px', borderRadius: '12px', color: '#f87171' }}><AlertTriangle size={24} /></div>
           </div>
-          <span style={{ color: '#f87171', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.5rem' }}><AlertTriangle size={12} /> Requieren reabastecimiento</span>
+          <span style={{ color: '#f87171', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.5rem' }}><AlertTriangle size={12} /> Requieren reposición</span>
         </div>
       </div>
 
-      {/* SECCIÓN DE GRÁFICOS Y ANALÍTICA VISUAL */}
+      {/* SECCIÓN DE GRÁFICOS Y ANALYTICS */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         
-        {/* GRÁFICO DE BARRAS: DISTRIBUCIÓN POR CATEGORÍA */}
+        {/* GRÁFICO DE DISTRIBUCIÓN POR CATEGORÍA */}
         <div style={{ background: 'rgba(15, 23, 42, 0.9)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
-          <h3 style={{ color: '#f8fafc', margin: '0 0 1.25rem 0', fontSize: '1.1rem' }}>Distribución de Stock por Categoría</h3>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h3 style={{ color: '#f8fafc', margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Activity size={18} color="#38bdf8" /> Distribución de Stock por Categoría
+            </h3>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px' }}>Tiempo Real</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#cbd5e1', fontSize: '0.85rem', marginBottom: '6px' }}>
-                <span>Deportiva / Pista</span><span style={{ color: '#38bdf8', fontWeight: 'bold' }}>58 unidades (41%)</span>
+                <span style={{ fontWeight: '600' }}>Deportiva / Pista (Kawasaki, Yamaha)</span><span style={{ color: '#38bdf8', fontWeight: 'bold' }}>58 unidades (41%)</span>
               </div>
-              <div style={{ width: '100%', height: '10px', background: '#1e293b', borderRadius: '5px', overflow: 'hidden' }}>
-                <div style={{ width: '41%', height: '100%', background: 'linear-gradient(90deg, #0284c7, #38bdf8)', borderRadius: '5px' }}></div>
+              <div style={{ width: '100%', height: '12px', background: '#1e293b', borderRadius: '6px', overflow: 'hidden' }}>
+                <div style={{ width: '41%', height: '100%', background: 'linear-gradient(90deg, #0284c7, #38bdf8)', borderRadius: '6px' }}></div>
               </div>
             </div>
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#cbd5e1', fontSize: '0.85rem', marginBottom: '6px' }}>
-                <span>Naked / Street</span><span style={{ color: '#818cf8', fontWeight: 'bold' }}>48 unidades (34%)</span>
+                <span style={{ fontWeight: '600' }}>Naked / Street (Pulsar, Bajaj)</span><span style={{ color: '#818cf8', fontWeight: 'bold' }}>48 unidades (34%)</span>
               </div>
-              <div style={{ width: '100%', height: '10px', background: '#1e293b', borderRadius: '5px', overflow: 'hidden' }}>
-                <div style={{ width: '34%', height: '100%', background: 'linear-gradient(90deg, #6366f1, #818cf8)', borderRadius: '5px' }}></div>
+              <div style={{ width: '100%', height: '12px', background: '#1e293b', borderRadius: '6px', overflow: 'hidden' }}>
+                <div style={{ width: '34%', height: '100%', background: 'linear-gradient(90deg, #6366f1, #818cf8)', borderRadius: '6px' }}></div>
               </div>
             </div>
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#cbd5e1', fontSize: '0.85rem', marginBottom: '6px' }}>
-                <span>Cross / Enduro</span><span style={{ color: '#34d399', fontWeight: 'bold' }}>36 unidades (25%)</span>
+                <span style={{ fontWeight: '600' }}>Cross / Enduro (Honda, KTM)</span><span style={{ color: '#34d399', fontWeight: 'bold' }}>36 unidades (25%)</span>
               </div>
-              <div style={{ width: '100%', height: '10px', background: '#1e293b', borderRadius: '5px', overflow: 'hidden' }}>
-                <div style={{ width: '25%', height: '100%', background: 'linear-gradient(90deg, #059669, #34d399)', borderRadius: '5px' }}></div>
+              <div style={{ width: '100%', height: '12px', background: '#1e293b', borderRadius: '6px', overflow: 'hidden' }}>
+                <div style={{ width: '25%', height: '100%', background: 'linear-gradient(90deg, #059669, #34d399)', borderRadius: '6px' }}></div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* RESUMEN FINANCIERO / VALORIZACIÓN */}
+        {/* VALORIZACIÓN FINANCIERA DEL ALMACÉN */}
         <div style={{ background: 'rgba(15, 23, 42, 0.9)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.2)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <h3 style={{ color: '#f8fafc', margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>Valorización en Almacén</h3>
+            <h3 style={{ color: '#f8fafc', margin: '0 0 0.5rem 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <DollarSign size={18} color="#10b981" /> Valorización en Almacén
+            </h3>
             <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0 }}>Capital total invertido en stock actual</p>
           </div>
-          <div style={{ margin: '1rem 0', padding: '1rem', background: 'rgba(30, 41, 59, 0.5)', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.1)' }}>
+          
+          <div style={{ margin: '1rem 0', padding: '1.25rem', background: 'rgba(30, 41, 59, 0.5)', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.15)', textAlign: 'center' }}>
             <span style={{ color: '#38bdf8', fontSize: '1.8rem', fontWeight: '800' }}>S/ 2'850,400.00</span>
-            <div style={{ color: '#10b981', fontSize: '0.75rem', marginTop: '4px' }}>Auditoría OK - Base de Datos Sequelize</div>
+            <div style={{ color: '#10b981', fontSize: '0.75rem', marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+              <CheckCircle2 size={12} /> Auditoría OK - Base de Datos Sequelize
+            </div>
           </div>
+
           <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center' }}>
-            Última sincronización: Hoy, 04:19 PM
+            Sincronizado con API Node.js (Puerto 3006)
           </div>
         </div>
 
       </div>
+
+      {/* SECCIÓN INFERIOR: ACTIVIDAD RECIENTE Y ACCESOS RÁPIDOS */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        
+        {/* ACTIVIDAD RECIENTE */}
+        <div style={{ background: 'rgba(15, 23, 42, 0.9)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+          <h3 style={{ color: '#f8fafc', margin: '0 0 1rem 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={18} color="#818cf8" /> Actividad Reciente del Sistema
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(30,41,59,0.5)', borderRadius: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '8px', borderRadius: '8px' }}><ArrowDownLeft size={16} /></div>
+                <div><div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: '600' }}>Entrada de Stock: Pulsar N250 FI</div><div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Registrado por Jazmín Narvay</div></div>
+              </div>
+              <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Hace 15 min</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(30,41,59,0.5)', borderRadius: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', padding: '8px', borderRadius: '8px' }}><ArrowUpRight size={16} /></div>
+                <div><div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: '600' }}>Salida / Venta: Kawasaki Ninja 400</div><div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Stock crítico detectado</div></div>
+              </div>
+              <span style={{ color: '#64748b', fontSize: '0.75rem' }}>Hace 2 horas</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ESTADO DE LOS PROVEEDORES OFICIALES */}
+        <div style={{ background: 'rgba(15, 23, 42, 0.9)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+          <h3 style={{ color: '#f8fafc', margin: '0 0 1rem 0', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Users size={18} color="#34d399" /> Proveedores Activos en Alianza
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'rgba(30,41,59,0.5)', borderRadius: '10px' }}>
+              <div><div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: '600' }}>Bajaj Auto Perú S.A.</div><div style={{ color: '#38bdf8', fontSize: '0.75rem' }}>Principal (Naked / Street)</div></div>
+              <span style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>Conectado</span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'rgba(30,41,59,0.5)', borderRadius: '10px' }}>
+              <div><div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: '600' }}>Kawasaki Motor Center</div><div style={{ color: '#818cf8', fontSize: '0.75rem' }}>Deportiva / Pista</div></div>
+              <span style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>Conectado</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+// --- VISTA DE REPOSICIÓN CON CANTIDAD PERSONALIZABLE Y ELIMINACIÓN AUTOMÁTICA ---
+function ReposicionView({ pendientes, onHacerPedido }) {
+  const [cantidades, setCantidades] = useState({});
+  const [mensajeExito, setMensajeExito] = useState('');
+
+  const handleInputChange = (id, valor) => {
+    setCantidades({ ...cantidades, [id]: valor });
+  };
+
+  const ejecutarPedido = (item) => {
+    const cantidadPedida = Number(cantidades[item.id]) || (item.minRequerido - item.stockActual);
+    onHacerPedido(item.id);
+    setMensajeExito(`¡Pedido realizado con éxito a ${item.proveedor}! Se solicitaron ${cantidadPedida} unidades de ${item.modelo}. El modelo ha salido de alertas.`);
+    setTimeout(() => setMensajeExito(''), 4000);
+  };
+
+  return (
+    <div style={{ padding: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div>
+          <h1 style={{ color: '#fff', margin: 0, fontSize: '1.6rem' }}>Reposición de Stock y Alertas</h1>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Gestión de pedidos a proveedores. Al hacer el pedido, el modelo se repone y deja de mostrarse en alertas.</p>
+        </div>
+        <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '0.5rem 1rem', borderRadius: '10px', color: '#f87171', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <AlertTriangle size={16} /> {pendientes.length} Modelos en Alerta Roja
+        </div>
+      </div>
+
+      {mensajeExito && (
+        <div style={{ background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#34d399', padding: '1rem', borderRadius: '12px', fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircle2 size={20} /> {mensajeExito}
+        </div>
+      )}
+
+      {pendientes.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'rgba(15, 23, 42, 0.85)', borderRadius: '16px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+          <CheckCircle2 size={48} color="#34d399" style={{ margin: '0 auto 1rem' }} />
+          <h2 style={{ color: '#fff', fontSize: '1.3rem', margin: 0 }}>¡Todo en orden!</h2>
+          <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '6px' }}>No hay motocicletas con stock crítico en este momento.</p>
+        </div>
+      ) : (
+        <div style={{ background: 'rgba(15, 23, 42, 0.85)', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.2)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', color: '#fff', fontSize: '0.9rem' }}>
+            <thead>
+              <tr style={{ background: 'rgba(30, 41, 59, 0.8)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                <th style={{ padding: '1rem' }}>Modelo / Moto</th>
+                <th style={{ padding: '1rem' }}>Marca</th>
+                <th style={{ padding: '1rem' }}>Stock Real</th>
+                <th style={{ padding: '1rem' }}>Mínimo Óptimo</th>
+                <th style={{ padding: '1rem' }}>Proveedor Sugerido</th>
+                <th style={{ padding: '1rem' }}>Cantidad a Pedir</th>
+                <th style={{ padding: '1rem', textAlign: 'center' }}>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendientes.map(item => {
+                const sugeridoDefault = item.minRequerido - item.stockActual;
+                return (
+                  <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '1rem', fontWeight: '600', color: '#38bdf8' }}>{item.modelo}</td>
+                    <td style={{ padding: '1rem', color: '#818cf8' }}>{item.marca}</td>
+                    <td style={{ padding: '1rem', color: '#f87171', fontWeight: 'bold' }}>{item.stockActual} un.</td>
+                    <td style={{ padding: '1rem', color: '#cbd5e1' }}>{item.minRequerido} un.</td>
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ fontWeight: '500' }}>{item.proveedor}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{item.email}</div>
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        defaultValue={sugeridoDefault}
+                        value={cantidades[item.id] !== undefined ? cantidades[item.id] : sugeridoDefault}
+                        onChange={(e) => handleInputChange(item.id, e.target.value)}
+                        style={{ width: '75px', padding: '0.4rem 0.5rem', background: '#1e293b', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', color: '#fff', fontSize: '0.9rem', outline: 'none' }} 
+                      />
+                    </td>
+                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                      <button 
+                        onClick={() => ejecutarPedido(item)}
+                        style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Send size={14} /> Hacer Pedido
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -346,7 +519,7 @@ function ProductosView() {
                 <h3 style={{ color: '#fff', margin: '4px 0', fontSize: '1rem' }}>{p.nombre}</h3>
                 <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.75rem' }}>
                   <span style={{ color: '#38bdf8', fontSize: '1rem', fontWeight: 'bold' }}>{p.precio}</span>
-                  <span style={{ fontSize: '0.75rem', color: '#10b981' }}>Stock: {p.stock}</span>
+                  <span style={{ fontSize: '0.75rem', color: p.stock <= 3 ? '#f87171' : '#10b981' }}>Stock: {p.stock}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
                   <button onClick={() => abrirModalEditar(p)} style={{ flex: 1, background: 'rgba(2, 132, 199, 0.2)', color: '#38bdf8', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}><Edit3 size={14} /> Editar</button>
@@ -378,7 +551,7 @@ function ProductosView() {
                   <td style={{ padding: '1rem', color: '#818cf8' }}>{p.marca}</td>
                   <td style={{ padding: '1rem' }}>{p.categoria}</td>
                   <td style={{ padding: '1rem', color: '#38bdf8' }}>{p.precio}</td>
-                  <td style={{ padding: '1rem', color: '#10b981' }}>{p.stock}</td>
+                  <td style={{ padding: '1rem', color: p.stock <= 3 ? '#f87171' : '#10b981' }}>{p.stock}</td>
                   <td style={{ padding: '1rem', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '8px' }}>
                     <button onClick={() => abrirModalEditar(p)} style={{ background: 'rgba(2, 132, 199, 0.2)', color: '#38bdf8', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer' }}><Edit3 size={14} /></button>
                     <button onClick={() => eliminarProducto(p.id)} style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer' }}><Trash2 size={14} /></button>
@@ -434,7 +607,7 @@ function ProductosView() {
   );
 }
 
-// --- CATEGORÍAS (CRUD COMPLETO) ---
+// --- CATEGORÍAS ---
 function CategoriasView() {
   const [categorias, setCategorias] = useState([
     { id: '1', nombre: 'Deportiva / Pista', descripcion: 'Motocicletas de alta velocidad y aerodinámica', total: 45 },
@@ -512,7 +685,7 @@ function CategoriasView() {
   );
 }
 
-// --- PROVEEDORES (CRUD COMPLETO) ---
+// --- PROVEEDORES ---
 function ProveedoresView() {
   const [proveedores, setProveedores] = useState([
     { id: '1', empresa: 'Bajaj Auto Perú S.A.', contacto: 'Carlos Mendoza', telefono: '+51 987654321', email: 'ventas@bajajperu.pe' },
@@ -592,7 +765,7 @@ function ProveedoresView() {
   );
 }
 
-// --- KARDEX / MOVIMIENTOS ---
+// --- KARDEX ---
 function KardexView() {
   const [movimientos, setMovimientos] = useState([
     { id: '1', tipo: 'ENTRADA', moto: 'Pulsar N250 FI ABS', cantidad: 5, fecha: '2026-03-02', responsable: 'Jazmín Narvay' },
@@ -748,27 +921,47 @@ export default function App() {
     return localStorage.getItem('token') ? { nombre: 'Jazmín Narvay', rol: 'Administrador' } : null;
   });
 
+  const [pendientesReposicion, setPendientesReposicion] = useState([
+    { id: '002', modelo: 'Kawasaki Ninja 400 KRT', marca: 'KAWASAKI', stockActual: 2, minRequerido: 10, proveedor: 'Kawasaki Motor Center', email: 'contacto@kawasaki.pe' },
+    { id: '004', modelo: 'Honda CRF 250RX Cross', marca: 'HONDA', stockActual: 4, minRequerido: 12, proveedor: 'Honda Motor Perú', email: 'ventas@honda.pe' },
+    { id: '007', modelo: 'Yamaha MT-03', marca: 'YAMAHA', stockActual: 1, minRequerido: 8, proveedor: 'Yamaha Motor S.A.', email: 'pedidos@yamaha.pe' }
+  ]);
+
+  const handleHacerPedido = (id) => {
+    setPendientesReposicion(pendientesReposicion.filter(item => item.id !== id));
+  };
+
+  const handleLoginSuccess = (userData) => {
+    setUsuario(userData || { nombre: 'Jazmín Narvay', rol: 'Administrador' });
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     setUsuario(null);
   };
 
+  const alertasCount = pendientesReposicion.length;
+
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<LoginView onLoginSuccess={(u) => setUsuario(u)} />} />
+        <Route 
+          path="/login" 
+          element={usuario ? <Navigate to="/" replace /> : <LoginView onLoginSuccess={handleLoginSuccess} />} 
+        />
         <Route path="/*" element={
           <ProtectedRoute>
             <div style={{ display: 'flex', minHeight: '100vh', background: '#090d16', fontFamily: "'Inter', sans-serif" }}>
               <Sidebar />
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <Header usuario={usuario} onLogout={handleLogout} />
+                <Header usuario={usuario} onLogout={handleLogout} alertasCount={alertasCount} />
                 <main style={{ flex: 1, overflowY: 'auto' }}>
                   <Routes>
-                    <Route path="/" element={<DashboardView />} />
+                    <Route path="/" element={<DashboardView alertasCount={alertasCount} />} />
                     <Route path="/productos" element={<ProductosView />} />
                     <Route path="/categorias" element={<CategoriasView />} />
                     <Route path="/proveedores" element={<ProveedoresView />} />
+                    <Route path="/reposicion" element={<ReposicionView pendientes={pendientesReposicion} onHacerPedido={handleHacerPedido} />} />
                     <Route path="/kardex" element={<KardexView />} />
                     <Route path="/usuarios" element={<UsuariosView />} />
                   </Routes>
